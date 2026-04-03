@@ -1,0 +1,17 @@
+@startuml C4_Context_WarmHouse_AsIs
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [System Context] Система "Тёплый дом" (As-Is)
+
+Person(user, "Пользователь", "Владелец дома.\nПросматривает температуру\nи управляет отоплением.")
+
+System(smarthome, "Умный дом", "Управление отоплением\nи мониторинг температуры\nв домах пользователей.")
+
+System_Ext(sensors, "Системы отопления в домах", "Датчики температуры\nи реле отопления.\nПодключаются специалистом.")
+
+Rel(user, smarthome, "Просматривает температуру,\nуправляет отоплением", "HTTP/JSON")
+Rel(smarthome, sensors, "Управляет датчиками,\nзапрашивает температуру\n(синхронно, pull-модель)", "HTTP")
+
+@enduml

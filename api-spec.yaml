@@ -521,6 +521,7 @@ components:
           type: integer
         actionCommand:
           type: string
+          enum: [turn_on, turn_off]
 
     Scenario:
       type: object
@@ -543,6 +544,7 @@ components:
           type: integer
         actionCommand:
           type: string
+          enum: [turn_on, turn_off]
         isActive:
           type: boolean
         createdAt:

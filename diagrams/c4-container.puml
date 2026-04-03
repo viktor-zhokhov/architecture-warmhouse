@@ -41,7 +41,6 @@ Rel(gateway, user_svc, "Аутентификация, дома", "REST")
 Rel(gateway, device_svc, "Устройства, команды", "REST")
 Rel(gateway, telemetry_svc, "Запрос телеметрии", "REST")
 Rel(gateway, scenario_svc, "CRUD сценариев", "REST")
-Rel(gateway, notification_svc, "Настройки уведомлений", "REST")
 
 ' --- Сервисы → БД ---
 Rel(user_svc, db, "Читает/пишет", "SQL")

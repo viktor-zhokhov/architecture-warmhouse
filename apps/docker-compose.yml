@@ -29,6 +29,11 @@ services:
     ports:
       - "8081:8081"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/temperature?sensorId=1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
     networks:
       - smarthome-network
 
@@ -41,7 +46,7 @@ services:
       postgres:
         condition: service_healthy
       temperature-api:
-        condition: service_started
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/smarthome
       - TEMPERATURE_API_URL=http://temperature-api:8081

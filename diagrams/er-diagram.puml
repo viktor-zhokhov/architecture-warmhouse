@@ -1,0 +1,85 @@
+@startuml ER_Diagram_WarmHouse
+
+title ER-диаграмма — Экосистема "Тёплый дом"
+
+entity "User" as user {
+    * id : SERIAL <<PK>>
+    --
+    * name : VARCHAR(100)
+    * email : VARCHAR(255) <<UNIQUE>>
+    * password_hash : VARCHAR(255)
+    * role : VARCHAR(20)
+    * created_at : TIMESTAMPTZ
+}
+
+entity "House" as house {
+    * id : SERIAL <<PK>>
+    --
+    * owner_id : INT <<FK>>
+    * name : VARCHAR(100)
+    * address : VARCHAR(255)
+    * created_at : TIMESTAMPTZ
+}
+
+entity "Module" as module {
+    * id : SERIAL <<PK>>
+    --
+    * house_id : INT <<FK>>
+    * name : VARCHAR(100)
+    * description : TEXT
+}
+
+entity "DeviceType" as device_type {
+    * id : SERIAL <<PK>>
+    --
+    * name : VARCHAR(100)
+    * module_id : INT <<FK>>
+    * protocol : VARCHAR(20)
+}
+
+entity "Device" as device {
+    * id : SERIAL <<PK>>
+    --
+    * name : VARCHAR(100)
+    * type_id : INT <<FK>>
+    * house_id : INT <<FK>>
+    * serial_number : VARCHAR(100)
+    * status : VARCHAR(20)
+    * created_at : TIMESTAMPTZ
+}
+
+entity "TelemetryData" as telemetry {
+    * id : SERIAL <<PK>>
+    --
+    * device_id : INT <<FK>>
+    * value : FLOAT
+    * unit : VARCHAR(20)
+    * timestamp : TIMESTAMPTZ
+}
+
+entity "Scenario" as scenario {
+    * id : SERIAL <<PK>>
+    --
+    * user_id : INT <<FK>>
+    * name : VARCHAR(100)
+    * trigger_device_id : INT <<FK>>
+    * condition_field : VARCHAR(50)
+    * condition_operator : VARCHAR(10)
+    * condition_value : FLOAT
+    * action_device_id : INT <<FK>>
+    * action_command : VARCHAR(50)
+    * is_active : BOOLEAN
+    * created_at : TIMESTAMPTZ
+}
+
+user ||--o{ house : "владеет"
+user ||--o{ scenario : "создаёт"
+house ||--o{ module : "подключает"
+module ||--o{ device_type : "включает типы"
+device_type ||--o{ device : "определяет тип"
+house ||--o{ device : "содержит"
+device ||--o{ telemetry : "генерирует"
+device ||--o{ scenario : "триггер"
+device ||--o{ scenario : "действие"
+
+@enduml

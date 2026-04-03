@@ -177,55 +177,40 @@
 
 # Задание 5. Работа с docker и docker-compose
 
-Перейдите в apps.
+### 1. Приложение temperature-api
 
-Там находится приложение-монолит для работы с датчиками температуры. В README.md описано как запустить решение.
+[apps/temperature-api/main.go](./apps/temperature-api/main.go) — приложение на Go (без внешних зависимостей, только стандартная библиотека).
 
-Вам нужно:
+Эндпоинты:
+- `GET /temperature?location=Living+Room` — температура по названию комнаты
+- `GET /temperature/{sensorId}` — температура по ID датчика
 
-1) сделать простое приложение temperature-api на любом удобном для вас языке программирования, которое при запросе /temperature?location= будет отдавать рандомное значение температуры.
+При каждом вызове возвращает рандомное значение температуры (15–30°C). Маппинг location ↔ sensorId:
+- "Living Room" ↔ "1"
+- "Bedroom" ↔ "2"
+- "Kitchen" ↔ "3"
 
-Locations - название комнаты, sensorId - идентификатор названия комнаты
+Формат ответа соответствует `TemperatureResponse` из `smart_home/services/temperature_service.go`.
 
-```
-	// If no location is provided, use a default based on sensor ID
-	if location == "" {
-		switch sensorID {
-		case "1":
-			location = "Living Room"
-		case "2":
-			location = "Bedroom"
-		case "3":
-			location = "Kitchen"
-		default:
-			location = "Unknown"
-		}
-	}
+### 2. Dockerfile
 
-	// If no sensor ID is provided, generate one based on location
-	if sensorID == "" {
-		switch location {
-		case "Living Room":
-			sensorID = "1"
-		case "Bedroom":
-			sensorID = "2"
-		case "Kitchen":
-			sensorID = "3"
-		default:
-			sensorID = "0"
-		}
-	}
+[apps/temperature-api/Dockerfile](./apps/temperature-api/Dockerfile) — multi-stage build (golang:1.22-alpine → alpine). Порт 8081.
+
+### 3. Docker Compose
+
+[apps/docker-compose.yml](./apps/docker-compose.yml) — дополненный файл с настройками:
+
+- **postgres**: environment (user, password), volume для данных, init.sql через docker-entrypoint-initdb.d (скрипт сам создаёт БД smarthome), healthcheck
+- **temperature-api**: build из ./temperature-api, порт 8081
+- **app**: без изменений (уже был настроен)
+
+### Проверка
+
+```bash
+cd apps
+docker-compose up --build
 ```
 
-2) Приложение следует упаковать в Docker и добавить в docker-compose. Порт по умолчанию должен быть 8081
-
-3) Кроме того для smart_home приложения требуется база данных - добавьте в docker-compose файл настройки для запуска postgres с указанием скрипта инициализации ./smart_home/init.sql
-
-Для проверки можно использовать Postman коллекцию smarthome-api.postman_collection.json и вызвать:
-
-- Create Sensor
-- Get All Sensors
-
-Должно при каждом вызове отображаться разное значение температуры
-
-Ревьюер будет проверять точно так же.
+Затем в Postman:
+1. Create Sensor — `POST http://localhost:8080/api/v1/sensors` с телом `{"name": "Living Room Temperature", "type": "temperature", "location": "Living Room", "unit": "°C"}`
+2. Get All Sensors — `GET http://localhost:8080/api/v1/sensors` — при каждом вызове значение температуры будет разным.

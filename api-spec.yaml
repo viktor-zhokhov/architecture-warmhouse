@@ -1,0 +1,494 @@
+openapi: 3.0.3
+info:
+  title: Экосистема "Тёплый дом" API
+  description: |
+    API микросервисов экосистемы умного дома.
+
+    **Внешний API** — эндпоинты доступные пользователю через API Gateway (требуют JWT).
+
+    **Межсервисный API** — эндпоинты для взаимодействия микросервисов между собой (внутренняя сеть).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: API Gateway (внешний доступ)
+
+tags:
+  - name: "Внешний: Device Service"
+    description: Управление устройствами (через API Gateway)
+  - name: "Внешний: Telemetry Service"
+    description: Чтение телеметрии (через API Gateway)
+  - name: "Внешний: Scenario Service"
+    description: Управление сценариями (через API Gateway)
+  - name: "Межсервисный: Device Service"
+    description: Приём команд от Scenario Service
+  - name: "Межсервисный: Scenario Service"
+    description: Приём событий телеметрии от Telemetry Service
+  - name: "Межсервисный: Notification Service"
+    description: Приём запросов на отправку уведомлений от Scenario Service
+
+paths:
+
+  # ============================================
+  # ВНЕШНИЙ API (через API Gateway, требует JWT)
+  # ============================================
+
+  /devices:
+    post:
+      summary: Регистрация нового устройства
+      description: Создаёт новое устройство и привязывает его к дому
+      tags:
+        - "Внешний: Device Service"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCreate'
+            example:
+              name: "Датчик температуры гостиная"
+              typeId: 1
+              houseId: 1
+              serialNumber: "SN-TEMP-001"
+      responses:
+        '201':
+          description: Устройство создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              example:
+                id: 1
+                name: "Датчик температуры гостиная"
+                typeId: 1
+                houseId: 1
+                serialNumber: "SN-TEMP-001"
+                status: "inactive"
+                createdAt: "2026-04-03T10:00:00Z"
+        '400':
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "typeId is required"
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /devices/{id}:
+    get:
+      summary: Получение информации об устройстве
+      description: Возвращает данные устройства по его ID
+      tags:
+        - "Внешний: Device Service"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID устройства
+      responses:
+        '200':
+          description: Данные устройства
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              example:
+                id: 1
+                name: "Датчик температуры гостиная"
+                typeId: 1
+                houseId: 1
+                serialNumber: "SN-TEMP-001"
+                status: "active"
+                createdAt: "2026-04-03T10:00:00Z"
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "device not found"
+
+  /telemetry/{deviceId}:
+    get:
+      summary: Получение телеметрии устройства
+      description: Возвращает историю измерений для указанного устройства
+      tags:
+        - "Внешний: Telemetry Service"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID устройства
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Начало периода (ISO 8601)
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Конец периода (ISO 8601)
+      responses:
+        '200':
+          description: Список записей телеметрии
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TelemetryData'
+              example:
+                - id: 1
+                  deviceId: 1
+                  value: 22.5
+                  unit: "°C"
+                  timestamp: "2026-04-03T10:00:00Z"
+                - id: 2
+                  deviceId: 1
+                  value: 21.8
+                  unit: "°C"
+                  timestamp: "2026-04-03T10:05:00Z"
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /scenarios:
+    post:
+      summary: Создание сценария автоматизации
+      description: Создаёт новый сценарий с условием и действием
+      tags:
+        - "Внешний: Scenario Service"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioCreate'
+            example:
+              name: "Автовключение отопления"
+              triggerDeviceId: 1
+              conditionField: "temperature"
+              conditionOperator: "<"
+              conditionValue: 10
+              actionDeviceId: 2
+              actionCommand: "turn_on"
+      responses:
+        '201':
+          description: Сценарий создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+              example:
+                id: 1
+                userId: 1
+                name: "Автовключение отопления"
+                triggerDeviceId: 1
+                conditionField: "temperature"
+                conditionOperator: "<"
+                conditionValue: 10
+                actionDeviceId: 2
+                actionCommand: "turn_on"
+                isActive: true
+                createdAt: "2026-04-03T10:00:00Z"
+        '400':
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "name is required"
+
+  # ============================================
+  # МЕЖСЕРВИСНЫЙ API (внутренняя сеть)
+  # ============================================
+
+  /internal/devices/{id}/commands:
+    post:
+      summary: Отправка команды устройству
+      description: |
+        Вызывается Scenario Service → Device Service при срабатывании сценария.
+        Также доступен пользователю через API Gateway как /devices/{id}/commands.
+      tags:
+        - "Межсервисный: Device Service"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID устройства
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCommand'
+            example:
+              action: "turn_on"
+      responses:
+        '200':
+          description: Команда отправлена
+          content:
+            application/json:
+              example:
+                message: "command sent successfully"
+        '404':
+          description: Устройство не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Ошибка отправки команды
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "failed to send command to device"
+
+  /internal/events:
+    post:
+      summary: Событие телеметрии
+      description: |
+        Вызывается Telemetry Service → Scenario Service при получении нового измерения.
+        Scenario Service проверяет активные сценарии и при совпадении условия выполняет действие.
+      tags:
+        - "Межсервисный: Scenario Service"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryEvent'
+            example:
+              deviceId: 1
+              value: 8.5
+              unit: "°C"
+              timestamp: "2026-04-03T10:15:00Z"
+      responses:
+        '200':
+          description: Событие обработано
+          content:
+            application/json:
+              example:
+                processed: true
+                triggeredScenarios: 1
+
+  /internal/notifications:
+    post:
+      summary: Отправка уведомления
+      description: |
+        Вызывается Scenario Service → Notification Service при срабатывании сценария
+        для информирования пользователя.
+      tags:
+        - "Межсервисный: Notification Service"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+            example:
+              userId: 1
+              title: "Сценарий сработал"
+              message: "Обогреватель включён — температура 8.5°C"
+      responses:
+        '200':
+          description: Уведомление отправлено
+          content:
+            application/json:
+              example:
+                sent: true
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        typeId:
+          type: integer
+        houseId:
+          type: integer
+        serialNumber:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, offline]
+        createdAt:
+          type: string
+          format: date-time
+
+    DeviceCreate:
+      type: object
+      required:
+        - name
+        - typeId
+        - houseId
+        - serialNumber
+      properties:
+        name:
+          type: string
+        typeId:
+          type: integer
+        houseId:
+          type: integer
+        serialNumber:
+          type: string
+
+    DeviceCommand:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum: [turn_on, turn_off]
+
+    TelemetryData:
+      type: object
+      properties:
+        id:
+          type: integer
+        deviceId:
+          type: integer
+        value:
+          type: number
+          format: float
+        unit:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    TelemetryEvent:
+      type: object
+      required:
+        - deviceId
+        - value
+        - unit
+        - timestamp
+      properties:
+        deviceId:
+          type: integer
+        value:
+          type: number
+          format: float
+        unit:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ScenarioCreate:
+      type: object
+      required:
+        - name
+        - triggerDeviceId
+        - conditionField
+        - conditionOperator
+        - conditionValue
+        - actionDeviceId
+        - actionCommand
+      properties:
+        name:
+          type: string
+        triggerDeviceId:
+          type: integer
+        conditionField:
+          type: string
+        conditionOperator:
+          type: string
+          enum: ["<", ">", "==", "!=", "<=", ">="]
+        conditionValue:
+          type: number
+        actionDeviceId:
+          type: integer
+        actionCommand:
+          type: string
+
+    Scenario:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        triggerDeviceId:
+          type: integer
+        conditionField:
+          type: string
+        conditionOperator:
+          type: string
+        conditionValue:
+          type: number
+        actionDeviceId:
+          type: integer
+        actionCommand:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    NotificationRequest:
+      type: object
+      required:
+        - userId
+        - title
+        - message
+      properties:
+        userId:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string

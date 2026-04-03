@@ -150,11 +150,30 @@
 
 ### 1. Тип API
 
-Укажите, какой тип API вы будете использовать для взаимодействия микросервисов. Объясните своё решение.
+**REST API** (синхронное взаимодействие) — используется для всех коммуникаций: пользователь → API Gateway → микросервисы, и между микросервисами (Telemetry → Scenario, Scenario → Device, Scenario → Notification).
 
 ### 2. Документация API
 
-Здесь приложите ссылки на документацию API для микросервисов, которые вы спроектировали в первой части проектной работы. Для документирования используйте Swagger/OpenAPI или AsyncAPI.
+[api-spec.yaml](./api-spec.yaml) — OpenAPI 3.0 спецификация.
+
+**Внешний API** (через API Gateway, требует JWT):
+
+| Эндпоинт | Метод | Сервис | Описание |
+|----------|-------|--------|----------|
+| /devices | POST | Device Service | Регистрация нового устройства |
+| /devices/{id} | GET | Device Service | Получение информации об устройстве |
+| /telemetry/{deviceId} | GET | Telemetry Service | Получение телеметрии (с фильтрацией по периоду) |
+| /scenarios | POST | Scenario Service | Создание сценария автоматизации |
+
+**Межсервисный API** (внутренняя сеть между микросервисами):
+
+| Эндпоинт | Метод | Кто вызывает → Кто обрабатывает | Описание |
+|----------|-------|--------------------------------|----------|
+| /internal/devices/{id}/commands | POST | Scenario Service → Device Service | Отправка команды устройству при срабатывании сценария |
+| /internal/events | POST | Telemetry Service → Scenario Service | Событие телеметрии (новое измерение) для проверки сценариев |
+| /internal/notifications | POST | Scenario Service → Notification Service | Отправка уведомления пользователю |
+
+Для просмотра спецификации можно использовать [Swagger Editor](https://editor.swagger.io/) — вставить содержимое файла api-spec.yaml.
 
 # Задание 5. Работа с docker и docker-compose
 

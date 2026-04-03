@@ -1,5 +1,4 @@
 @startuml Code_DeviceModel
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
 title [Code] Модель данных — уровень кода
 

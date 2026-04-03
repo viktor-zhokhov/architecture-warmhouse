@@ -227,6 +227,54 @@ paths:
               example:
                 error: "name is required"
 
+    get:
+      summary: Получение списка сценариев
+      description: Возвращает все сценарии текущего пользователя
+      tags:
+        - "Внешний: Scenario Service"
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Список сценариев
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scenario'
+
+  /scenarios/{id}:
+    delete:
+      summary: Удаление сценария
+      description: Удаляет сценарий по ID
+      tags:
+        - "Внешний: Scenario Service"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID сценария
+      responses:
+        '200':
+          description: Сценарий удалён
+          content:
+            application/json:
+              example:
+                message: "scenario deleted successfully"
+        '404':
+          description: Сценарий не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "scenario not found"
+
   # ============================================
   # МЕЖСЕРВИСНЫЙ API (внутренняя сеть)
   # ============================================
@@ -303,6 +351,20 @@ paths:
               example:
                 processed: true
                 triggeredScenarios: 1
+        '400':
+          description: Некорректные данные события
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "deviceId is required"
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /internal/notifications:
     post:
@@ -329,6 +391,20 @@ paths:
             application/json:
               example:
                 sent: true
+        '400':
+          description: Некорректные данные уведомления
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "userId is required"
+        '500':
+          description: Ошибка отправки уведомления
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
   securitySchemes:

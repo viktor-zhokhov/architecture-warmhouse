@@ -164,6 +164,8 @@
 | /devices/{id} | GET | Device Service | Получение информации об устройстве |
 | /telemetry/{deviceId} | GET | Telemetry Service | Получение телеметрии (с фильтрацией по периоду) |
 | /scenarios | POST | Scenario Service | Создание сценария автоматизации |
+| /scenarios | GET | Scenario Service | Получение списка сценариев пользователя |
+| /scenarios/{id} | DELETE | Scenario Service | Удаление сценария |
 
 **Межсервисный API** (внутренняя сеть между микросервисами):
 

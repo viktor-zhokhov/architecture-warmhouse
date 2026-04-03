@@ -1,0 +1,66 @@
+@startuml C4_Container_WarmHouse_ToBe
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [Container] Экосистема "Тёплый дом" (To-Be)
+
+Person(homeowner, "Владелец дома", "Управляет устройствами,\nнастраивает сценарии,\nпросматривает телеметрию.")
+
+Person(support, "Служба поддержки", "Администрирует\nпользователей и устройства.")
+
+System_Ext(devices, "Умные устройства", "Датчики, реле отопления,\nосвещение, камеры, ворота.\nСобственные и партнёрские.")
+
+System_Ext(notification_providers, "Провайдеры уведомлений", "Email, SMS, Push.")
+
+System_Boundary(ecosystem, "Экосистема Тёплый дом") {
+
+    Container(gateway, "API Gateway", "Nginx", "Единая точка входа,\nмаршрутизация,\nпроверка JWT.")
+
+    Container(user_svc, "User Service", "Go", "Регистрация, логин,\nJWT-токены, роли.\nCRUD домов,\nпривязка пользователей.")
+
+    Container(device_svc, "Device Service", "Go", "Каталог типов устройств,\nрегистрация экземпляров,\nотправка команд,\nадаптеры протоколов.")
+
+    Container(telemetry_svc, "Telemetry Service", "Go", "Приём телеметрии\nот устройств (MQTT),\nхранение истории,\nAPI для чтения данных.")
+
+    Container(scenario_svc, "Scenario Service", "Go", "CRUD сценариев,\nоценка условий\nпо событиям телеметрии,\nвыполнение действий.")
+
+    Container(notification_svc, "Notification Service", "Go", "Отправка уведомлений\nпользователям\nпо событиям из\nсценариев.")
+
+    ContainerDb(db, "PostgreSQL", "PostgreSQL 16", "Общая БД.\nТаблицы: users, houses,\nmodules, device_types,\ndevices, telemetry,\nscenarios.")
+
+    Container_Ext(mqtt, "MQTT Broker", "MQTT", "Связь с IoT-устройствами.\nПриём телеметрии,\nотправка команд.")
+}
+
+' --- Пользователи → Gateway ---
+Rel(homeowner, gateway, "Управление, сценарии,\nтелеметрия", "HTTPS")
+Rel(support, gateway, "Администрирование", "HTTPS")
+
+' --- Gateway → сервисы ---
+Rel(gateway, user_svc, "Аутентификация, дома", "REST")
+Rel(gateway, device_svc, "Устройства, команды", "REST")
+Rel(gateway, telemetry_svc, "Запрос телеметрии", "REST")
+Rel(gateway, scenario_svc, "CRUD сценариев", "REST")
+Rel(gateway, notification_svc, "Настройки уведомлений", "REST")
+
+' --- Сервисы → БД ---
+Rel(user_svc, db, "Читает/пишет", "SQL")
+Rel(device_svc, db, "Читает/пишет", "SQL")
+Rel(telemetry_svc, db, "Читает/пишет", "SQL")
+Rel(scenario_svc, db, "Читает/пишет", "SQL")
+
+' --- IoT: устройства ↔ MQTT ↔ сервисы ---
+Rel(devices, mqtt, "Телеметрия (push)", "MQTT")
+Rel(mqtt, telemetry_svc, "Поток данных\nот устройств", "MQTT")
+Rel(device_svc, mqtt, "Команды устройствам", "MQTT")
+Rel(mqtt, devices, "Команды устройствам", "MQTT")
+
+' --- Межсервисные связи ---
+Rel(telemetry_svc, scenario_svc, "События телеметрии\n(новое измерение)", "REST")
+Rel(scenario_svc, device_svc, "Команды по сценарию\n(включить обогреватель)", "REST")
+Rel(scenario_svc, notification_svc, "Уведомить пользователя\n(сценарий сработал)", "REST")
+
+' --- Notification → провайдеры ---
+Rel(notification_svc, notification_providers, "Отправка уведомлений", "SMTP / HTTP")
+
+@enduml

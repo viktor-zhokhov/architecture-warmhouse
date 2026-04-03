@@ -1,0 +1,43 @@
+@startuml C4_Component_ScenarioService
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [Component] Scenario Service
+
+Container_Ext(gateway, "API Gateway", "Nginx", "")
+Container_Ext(telemetry_svc, "Telemetry Service", "Go", "")
+Container_Ext(device_svc, "Device Service", "Go", "")
+Container_Ext(notification_svc, "Notification Service", "Go", "")
+ContainerDb_Ext(db, "PostgreSQL", "PostgreSQL 16", "Общая БД")
+
+Container_Boundary(scenario_svc, "Scenario Service") {
+
+    Component(api, "Scenario API", "Gin / REST", "CRUD сценариев:\nсоздание, редактирование,\nактивация/деактивация,\nудаление.")
+
+    Component(event_handler, "Event Handler", "Gin / REST", "Принимает события\nтелеметрии от\nTelemetry Service.")
+
+    Component(rule_engine, "Rule Engine", "Go", "Оценивает условия\nактивных сценариев.\nНапример:\ntemperature < 10.")
+
+    Component(action_executor, "Action Executor", "Go / net/http", "Выполняет действия:\nкоманда устройству\nили уведомление\nпользователю.")
+
+    Component(repository, "Scenario Repository", "Go / pgx", "Чтение/запись\nсценариев, правил,\nистории срабатываний.")
+}
+
+' --- Входящие ---
+Rel(gateway, api, "CRUD сценариев", "REST")
+Rel(telemetry_svc, event_handler, "Новое измерение\nтелеметрии", "REST")
+
+' --- Внутренние ---
+Rel(api, repository, "Читает/пишет")
+Rel(event_handler, rule_engine, "TelemetryEvent")
+Rel(rule_engine, repository, "Загружает активные\nсценарии")
+Rel(rule_engine, action_executor, "Условие сработало")
+Rel(action_executor, repository, "Сохраняет историю\nсрабатываний")
+
+' --- Исходящие ---
+Rel(repository, db, "SQL")
+Rel(action_executor, device_svc, "Команда устройству", "REST")
+Rel(action_executor, notification_svc, "Уведомить пользователя", "REST")
+
+@enduml

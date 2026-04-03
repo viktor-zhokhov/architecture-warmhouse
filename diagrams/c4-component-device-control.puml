@@ -1,0 +1,35 @@
+@startuml C4_Component_DeviceService
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [Component] Device Service
+
+Container_Ext(gateway, "API Gateway", "Nginx", "")
+Container_Ext(mqtt, "MQTT Broker", "MQTT", "")
+Container_Ext(scenario_svc, "Scenario Service", "Go", "")
+ContainerDb_Ext(db, "PostgreSQL", "PostgreSQL 16", "Общая БД")
+
+Container_Boundary(device_svc, "Device Service") {
+
+    Component(api, "Device API", "Gin / REST", "CRUD устройств и типов.\nРегистрация, обновление,\nудаление, список.")
+
+    Component(command_api, "Command API", "Gin / REST", "Приём команд\nот пользователя и\nот Scenario Service.")
+
+    Component(mqtt_client, "MQTT Client", "Go / paho", "Отправляет команды\nустройствам через\nMQTT Broker.")
+
+    Component(repository, "Device Repository", "Go / pgx", "Чтение/запись\nустройств, типов,\nстатусов в PostgreSQL.")
+}
+
+Rel(gateway, api, "CRUD устройств", "REST")
+Rel(gateway, command_api, "Команды от пользователя", "REST")
+Rel(scenario_svc, command_api, "Команды от сценариев", "REST")
+
+Rel(api, repository, "Читает/пишет")
+Rel(command_api, repository, "Запрос типа устройства")
+Rel(command_api, mqtt_client, "Отправить команду")
+
+Rel(repository, db, "SQL")
+Rel(mqtt_client, mqtt, "Команда устройству", "MQTT")
+
+@enduml

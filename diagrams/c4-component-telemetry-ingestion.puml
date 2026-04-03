@@ -1,0 +1,40 @@
+@startuml C4_Component_TelemetryService
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title [Component] Telemetry Service
+
+Container_Ext(gateway, "API Gateway", "Nginx", "")
+Container_Ext(mqtt, "MQTT Broker", "MQTT", "")
+Container_Ext(scenario_svc, "Scenario Service", "Go", "")
+ContainerDb_Ext(db, "PostgreSQL", "PostgreSQL 16", "Общая БД")
+
+Container_Boundary(telemetry_svc, "Telemetry Service") {
+
+    Component(subscriber, "MQTT Subscriber", "Go / paho", "Подписывается на топики\nустройств в MQTT Broker.\nПринимает данные\nтелеметрии.")
+
+    Component(parser, "Message Parser", "Go", "Парсит и валидирует\nсообщения от устройств.\nПреобразует в единый\nформат TelemetryEvent.")
+
+    Component(writer, "DB Writer", "Go / pgx", "Сохраняет телеметрию\nв PostgreSQL.\nBatch-вставки.")
+
+    Component(notifier, "Event Notifier", "Go / net/http", "Уведомляет Scenario Service\nо новом измерении\nчерез REST-вызов.")
+
+    Component(query_api, "Query API", "Gin / REST", "API для чтения\nтекущих и исторических\nданных телеметрии.")
+}
+
+' --- Входящие ---
+Rel(mqtt, subscriber, "Данные от устройств", "MQTT")
+Rel(gateway, query_api, "Запрос телеметрии", "REST")
+
+' --- Внутренний pipeline ---
+Rel(subscriber, parser, "Сырое сообщение")
+Rel(parser, writer, "TelemetryEvent")
+Rel(parser, notifier, "TelemetryEvent")
+
+' --- Исходящие ---
+Rel(writer, db, "INSERT", "SQL")
+Rel(query_api, db, "SELECT", "SQL")
+Rel(notifier, scenario_svc, "Новое измерение", "REST")
+
+@enduml

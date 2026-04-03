@@ -86,17 +86,35 @@
 
 В этом задании вам нужно предоставить только диаграммы в модели C4. Мы не просим вас отдельно описывать получившиеся микросервисы и то, как вы определили взаимодействия между компонентами To-Be системы. Если вы правильно подготовите диаграммы C4, они и так это покажут.
 
+**As-Is:** Текущая система — один монолит (Go + PostgreSQL), который объединяет все функции: управление датчиками, запрос температуры, хранение данных. Домен один — «Управление отоплением и мониторинг температуры».
+
+**To-Be:** На основе 5 доменов из задания 1 выделены 5 микросервисов (bounded contexts объединены по доменам — Identity + Home Management → User Service, Device Registry + Device Control → Device Service, Telemetry Ingestion + Telemetry Query → Telemetry Service):
+
+| Микросервис | Домен | Что делает |
+|-------------|-------|-----------|
+| User Service | Пользователи и дома | Регистрация, логин, JWT, CRUD домов |
+| Device Service | Управление устройствами | Каталог модулей и типов, регистрация устройств, отправка команд |
+| Telemetry Service | Телеметрия | Приём данных (MQTT), хранение истории, API чтения |
+| Scenario Service | Сценарии | CRUD сценариев, Rule Engine, выполнение действий |
+| Notification Service | Уведомления | Отправка уведомлений (email, SMS, push) |
+
+Инфраструктура: API Gateway (Nginx), MQTT Broker, одна общая PostgreSQL.
+
+Взаимодействие между микросервисами — REST/JSON. Связь с устройствами — MQTT.
+
 **Диаграмма контейнеров (Containers)**
 
-Добавьте диаграмму.
+[c4-container.puml](./diagrams/c4-container.puml)
 
 **Диаграмма компонентов (Components)**
 
-Добавьте диаграмму для каждого из выделенных микросервисов.
+1. [c4-component-device-control.puml](./diagrams/c4-component-device-control.puml) — Device Service
+2. [c4-component-telemetry-ingestion.puml](./diagrams/c4-component-telemetry-ingestion.puml) — Telemetry Service
+3. [c4-component-scenario.puml](./diagrams/c4-component-scenario.puml) — Scenario Service
 
 **Диаграмма кода (Code)**
 
-Добавьте одну диаграмму или несколько.
+[c4-code-device-model.puml](./diagrams/c4-code-device-model.puml) — UML-диаграмма классов: User, House, Module, DeviceType, Device, TelemetryData, Scenario — с методами и связями между ними.
 
 # Задание 3. Разработка ER-диаграммы
 

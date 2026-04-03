@@ -1,0 +1,93 @@
+@startuml Code_DeviceModel
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title [Code] Модель данных — уровень кода
+
+class User {
+    + id : int
+    + name : String
+    + email : String
+    + role : String
+    --
+    + register()
+    + login() : Token
+}
+
+class House {
+    + id : int
+    + owner : User
+    + name : String
+    + address : String
+    --
+    + addModule(module)
+    + getDevices() : []Device
+}
+
+class Module {
+    + id : int
+    + house : House
+    + name : String
+    + description : String
+    --
+    + getDeviceTypes() : []DeviceType
+}
+
+class DeviceType {
+    + id : int
+    + module : Module
+    + name : String
+    + protocol : String
+    --
+    + getSupportedCommands() : []String
+}
+
+class Device {
+    + id : int
+    + name : String
+    + type : DeviceType
+    + house : House
+    + serialNumber : String
+    + status : String
+    --
+    + sendCommand(command) : error
+    + getStatus() : String
+    + getTelemetry() : []TelemetryData
+}
+
+class TelemetryData {
+    + id : int
+    + device : Device
+    + value : Float
+    + unit : String
+    + timestamp : Timestamp
+}
+
+class Scenario {
+    + id : int
+    + user : User
+    + name : String
+    + triggerDevice : Device
+    + conditionField : String
+    + conditionOperator : String
+    + conditionValue : Float
+    + actionDevice : Device
+    + actionCommand : String
+    + isActive : Boolean
+    --
+    + evaluate(event : TelemetryData) : Boolean
+    + execute()
+    + activate()
+    + deactivate()
+}
+
+User "1" -- "0..*" House : владеет
+User "1" -- "0..*" Scenario : создаёт
+House "1" -- "0..*" Module : подключает
+House "1" -- "0..*" Device : содержит
+Module "1" -- "0..*" DeviceType : включает типы
+DeviceType "1" -- "0..*" Device : определяет тип
+Device "1" -- "0..*" TelemetryData : генерирует
+Scenario "0..*" --> "1" Device : триггер
+Scenario "0..*" --> "1" Device : действие
+
+@enduml
